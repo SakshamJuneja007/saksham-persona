@@ -1,0 +1,451 @@
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  background: #000;
+  overflow: hidden;
+}
+
+/* =========================================
+   MUSIC PLAYER
+========================================= */
+
+/* ==========================================
+   PERSONA MUSIC PLAYER
+========================================== */
+
+.p3-music {
+  position: absolute;
+
+  left: -10px;
+  bottom: 10px;
+
+  width: 300px;
+
+  z-index: 30;
+
+  transform: rotate(15deg);
+
+  
+
+  user-select: none;
+
+  transition:
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.3s ease;
+}
+
+
+
+
+/* ==========================================
+   PLAYER IMAGE
+========================================== */
+
+.p3-player-body {
+  display: block;
+
+  width: 100%;
+  height: auto;
+
+  pointer-events: none;
+}
+
+
+/* ==========================================
+   EVERYTHING INSIDE THE PLAYER
+========================================== */
+
+.p3-player-ui {
+  position: absolute;
+
+  /*
+    This is the area INSIDE the
+    player.png where the screen is.
+  */
+
+  left: 47%;
+  top: 28%;
+  transform:rotate(deg);
+  width: 30%;
+  height: 30%;
+
+  pointer-events: none;
+}
+
+
+/* ==========================================
+   SONG SECTION
+========================================== */
+
+.p3-song-section {
+  position: absolute;
+
+  left: 0;
+  top: 15px;
+
+  width: 82%;
+
+  overflow: hidden;
+}
+
+
+/* artist */
+
+
+/* ==========================================
+   MOVING SONG NAME
+========================================== */
+
+.p3-marquee {
+  width: 100%;
+
+  overflow: hidden;
+
+  white-space: nowrap;
+   transform:rotate(1deg);
+}
+
+.p3-marquee-track {
+  display: inline-flex;
+
+  width: max-content;
+ 
+  animation:
+    p3-song-scroll 7s linear infinite;
+}
+
+.p3-marquee-track span {
+  display: inline-block;
+  
+
+  margin-right: 20px;
+
+  font-family: Arial, sans-serif;
+
+  font-size: 9px;
+
+  font-weight: 600;
+
+  color: rgba(25, 25, 25, 0.9);
+}
+
+
+/*
+  Song goes left,
+  disappears,
+  then re-enters from right.
+*/
+
+@keyframes p3-song-scroll {
+
+  0% {
+    transform: translateX(0);
+  }
+
+  10% {
+    transform: translateX(0);
+  }
+
+  90% {
+    transform: translateX(-70%);
+  }
+
+  100% {
+    transform: translateX(-70%);
+  }
+
+}
+
+
+/* ==========================================
+   DISK AREA
+========================================== */
+
+.p3-disk-area {
+  position: absolute;
+
+  right: -25%;
+  top: 25%;
+
+  width: 43%;
+  height: 58%;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  pointer-events: auto;
+}
+
+
+/* ==========================================
+   DISK
+========================================== */
+
+.p3-disk {
+  width: 14px;
+  height: 14px;
+
+  object-fit: contain;
+
+  pointer-events: none;
+
+  transition:
+    transform 0.3s linear;
+}
+
+
+/*
+  Disk spins while playing
+*/
+
+.p3-music.is-playing .p3-disk {
+  animation:
+    p3-disk-spin 3s linear infinite;
+}
+
+@keyframes p3-disk-spin {
+
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+
+}
+
+
+/* ==========================================
+   PREVIOUS / NEXT
+========================================== */
+
+.p3-skip {
+  position: absolute;
+
+  border: none;
+
+  background: transparent;
+
+  padding: 0;
+
+  width: 22px;
+  height: 22px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  color: rgba(30, 30, 30, 0.65);
+
+  font-size: 9px;
+
+  cursor: pointer;
+
+  pointer-events: auto;
+
+  transition:
+    transform 0.15s ease,
+    color 0.15s ease;
+}
+
+.p3-skip:hover {
+  color: #111;
+
+  transform: scale(1.2);
+}
+
+
+/* previous */
+
+.p3-prev {
+  left: -3px;
+}
+
+
+/* next */
+
+.p3-next {
+  right: -3px;
+}
+
+
+/* ==========================================
+   BOTTOM CONTROLS
+========================================== */
+
+.p3-bottom-controls {
+  position: absolute;
+
+  left: 12px;
+  
+
+  bottom: -3px;
+
+  height: 24px;
+
+  display: flex;
+
+  align-items: center;
+
+  gap: 6px;
+
+  pointer-events: auto;
+}
+
+
+/* ==========================================
+   PLAY / PAUSE
+========================================== */
+
+.p3-play {
+  width: 20px;
+  height: 20px;
+
+  flex-shrink: 0;
+
+  padding: 0;
+
+  border: none;
+
+  background: transparent;
+
+  color: rgba(25, 25, 25, 0.75);
+
+  font-size: 10px;
+
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.15s ease,
+    color 0.15s ease;
+}
+
+.p3-play:hover {
+  color: #000;
+
+  ;
+}
+
+
+/* ==========================================
+   TIME
+========================================== */
+
+.p3-time {
+  font-family: Arial, sans-serif;
+
+  font-size: 8px;
+
+  color: rgba(35, 35, 35, 0.7);
+
+  white-space: nowrap;
+
+  min-width: 25px;
+}
+
+
+/* ==========================================
+   PROGRESS BAR
+========================================== */
+
+.p3-progress {
+  position: relative;
+
+  height: 3px;
+
+  flex: 1;
+
+  background: rgba(30, 30, 30, 0.18);
+
+  cursor: pointer;
+
+  border-radius: 2px;
+}
+
+
+/* progress */
+
+.p3-progress-fill {
+  position: absolute;
+
+  left: 0;
+  top: 0;
+
+  height: 100%;
+
+  background: rgba(30, 30, 30, 0.7);
+
+  border-radius: 2px;
+}
+
+
+/* progress dot */
+
+.p3-progress-dot {
+  position: absolute;
+
+  top: 50%;
+
+  width: 6px;
+  height: 6px;
+
+  border-radius: 50%;
+
+  background: #222;
+
+  transform:
+    translate(-50%, -50%);
+}
+
+
+/* ==========================================
+   PLAYING EFFECT
+========================================== */
+
+.p3-music.is-playing .p3-player-body {
+  filter: brightness(1.035);
+}
+
+
+/* ==========================================
+   MOBILE
+========================================== */
+
+@media (max-width: 700px) {
+
+  .p3-music {
+    left: 15px;
+    bottom: 18px;
+
+    width: 300px;
+
+    transform: rotate(-12deg);
+  }
+
+  .p3-player-ui {
+    left: 27%;
+    top: 22%;
+
+    width: 55%;
+    height: 55%;
+  }
+
+}
