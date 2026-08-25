@@ -7,11 +7,6 @@ import {
 
 import { AnimatePresence } from "framer-motion";
 
-import menuVideo from "./assets/Mainn.mp4";
-import main1 from "./assets/main1.mp4";
-import main2 from "./assets/main2.mp4";
-import main3 from "./assets/main3.mp4";
-
 import Project from "./Project";
 import P3Menu from "./P3Menu";
 import VideoPage from "./VideoPage";
@@ -24,6 +19,23 @@ import MusicPlayer from "./MusicPlayer";
 import "./App.css";
 
 // ============================================================
+// EXTERNAL VIDEO URLS
+// ============================================================
+
+const menuVideo =
+  "https://videotourl.com/videos/1787648911296-2addd9a1-9d20-47ad-8c07-6dd19d1ba369.mp4";
+
+// Replace these with your actual VideoToURL links
+const main1 =
+  "YOUR_MAIN1_VIDEO_URL";
+
+const main2 =
+  "YOUR_MAIN2_VIDEO_URL";
+
+const main3 =
+  "YOUR_MAIN3_VIDEO_URL";
+
+// ============================================================
 // MENU SCREEN
 // ============================================================
 
@@ -32,19 +44,18 @@ function MenuScreen() {
 
   return (
     <div id="menu-screen">
-
       <video
         src={menuVideo}
         autoPlay
         loop
         muted
         playsInline
+        preload="auto"
       />
 
       <P3Menu
         onNavigate={(page) => navigate(`/${page}`)}
       />
-
     </div>
   );
 }
@@ -58,12 +69,10 @@ function AnimatedRoutes() {
 
   return (
     <AnimatePresence mode="wait">
-
       <Routes
         location={location}
         key={location.pathname}
       >
-
         {/* ======================================================
             HOME
         ====================================================== */}
@@ -154,9 +163,7 @@ function AnimatedRoutes() {
             </PageTransition>
           }
         />
-
       </Routes>
-
     </AnimatePresence>
   );
 }
@@ -171,7 +178,7 @@ export default function App() {
       {/* ========================================================
           ROUTES
 
-          THESE CAN CHANGE / UNMOUNT FREELY
+          These can change / unmount freely.
       ======================================================== */}
 
       <AnimatedRoutes />
@@ -184,22 +191,18 @@ export default function App() {
           THIS IS THE ONLY <MusicPlayer /> INSTANCE IN THE
           ENTIRE APP.
 
-          It lives here, as a sibling of AnimatedRoutes, OUTSIDE
-          <Routes> and <AnimatePresence>. Because of that, it
-          NEVER unmounts when the route changes — the audio
-          element inside it keeps playing continuously.
+          It lives here, as a sibling of AnimatedRoutes,
+          OUTSIDE <Routes> and <AnimatePresence>.
 
-          Do NOT import or render <MusicPlayer /> anywhere else
-          (e.g. inside P3Menu, MenuScreen, or any page component).
-          A second instance mounted inside a Route will die on
-          navigation and will silently be the one you're actually
-          interacting with, since it renders on top of this one —
-          which is exactly the bug that caused audio to stop on
-          route change.
+          Because of that, it NEVER unmounts when the route
+          changes and the audio element keeps playing.
 
-          MusicPlayer itself decides (via useLocation) to show
-          the visual controls only on "/", while the <audio>
-          element itself always stays mounted regardless of route.
+          Do NOT import or render <MusicPlayer /> anywhere else.
+
+          MusicPlayer itself decides via useLocation() whether
+          to show the visual controls on "/".
+
+          The audio element remains mounted across routes.
       ======================================================== */}
 
       <MusicPlayer />
