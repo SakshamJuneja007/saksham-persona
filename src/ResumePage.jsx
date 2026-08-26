@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 import resumePDF from "./assets/resume.pdf";
 const resumeVideo =
-  "https://videotourl.com/videos/1787649960662-48c420be-1e9c-46f4-906e-d36020d1b3f4.mp4";
+  "https://videotourl.com/videos/1787747096009-5a38f591-3813-486a-88cc-95079f8a89f2.mp4";
 
 const ITEMS = [
   {

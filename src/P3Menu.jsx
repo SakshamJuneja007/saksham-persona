@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import navigateSound from "./assets/navigate.mp3";
 import char1 from "./assets/mainf.png";
 const bgVideo =
-  "https://videotourl.com/videos/1787649462755-81561f8c-17a5-4d6b-bb45-c6edb14d0606.mp4";
+  "https://videotourl.com/videos/1787747373934-8e9a9cfa-07b8-4935-890b-0e158bbf1ba0.mp4";
 
 const ITEMS = [
   {

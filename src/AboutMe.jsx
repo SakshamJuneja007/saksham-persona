@@ -19,7 +19,7 @@ const CHARS = [char1, char2, char3];
 
 const MAIN_IMAGES = [mainm, mainm2, mainf];
 const bgVideo =
-  "https://videotourl.com/videos/1787649295432-44bf7e72-7901-452e-8993-c2ceb12b7ee9.mp4";
+  "https://videotourl.com/videos/1787747296648-e1e089a7-ec76-47f3-9778-302473336bb9.mp4";
 
 const REVEAL_CONTENT = [
   {

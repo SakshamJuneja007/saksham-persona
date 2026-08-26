@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const projectBg =
-  "https://videotourl.com/videos/1787649841783-b6fcec6a-9c07-4f40-88cc-8d720106d189.mp4";
+  "https://videotourl.com/videos/1787747406551-1ac6f3c3-32c2-4ee9-b98f-51cac742b49a.mp4";
 const PROJECTS = [
   {
     id: "attendance",
