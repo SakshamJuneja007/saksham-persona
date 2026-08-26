@@ -23,7 +23,7 @@ import "./App.css";
 // ============================================================
 
 const menuVideo =
-  "https://videotourl.com/videos/1787648911296-2addd9a1-9d20-47ad-8c07-6dd19d1ba369.mp4";
+  "";
 
 // Replace these with your actual VideoToURL links
 const main1 =

@@ -2,8 +2,35 @@ import { useState, useEffect, useRef } from "react";
 
 import navigateSound from "./assets/navigate.mp3";
 import char1 from "./assets/mainf.png";
+
 const bgVideo =
   "https://videotourl.com/videos/1787747373934-8e9a9cfa-07b8-4935-890b-0e158bbf1ba0.mp4";
+
+/*
+============================================================
+ALL PAGE VIDEOS
+============================================================
+These are preloaded during the Persona 03 boot sequence.
+The browser can then reuse the downloaded video data when
+the user navigates to another page.
+*/
+
+const PAGE_VIDEOS = {
+  home:
+    "https://videotourl.com/videos/1787747373934-8e9a9cfa-07b8-4935-890b-0e158bbf1ba0.mp4",
+
+  about:
+    "https://videotourl.com/videos/1787747296648-e1e089a7-ec76-47f3-9778-302473336bb9.mp4",
+
+  socials:
+    "https://videotourl.com/videos/1787648911296-2addd9a1-9d20-47ad-8c07-6dd19d1ba369.mp4",
+
+  projects:
+    "https://videotourl.com/videos/1787747406551-1ac6f3c3-32c2-4ee9-b98f-51cac742b49a.mp4",
+
+  resume:
+    "https://videotourl.com/videos/1787747096009-5a38f591-3813-486a-88cc-95079f8a89f2.mp4",
+};
 
 const ITEMS = [
   {
@@ -51,10 +78,13 @@ const ITEMS = [
 const CLIP_SHAPES = [
   (w, h) =>
     `polygon(0px 0px, ${w}px ${h * 0.5}px, 0px ${h}px)`,
+
   (w, h) =>
     `polygon(0px 0px, ${w}px ${h * 0.5}px, 0px ${h}px)`,
+
   (w, h) =>
     `polygon(0px 0px, ${w}px ${h * 0.5}px, 0px ${h}px)`,
+
   (w, h) =>
     `polygon(0px 0px, ${w}px ${h * 0.5}px, 0px ${h}px)`,
 ];
@@ -106,6 +136,204 @@ export default function P3Menu({ onNavigate }) {
 
   const videoRef = useRef(null);
 
+  const videoPreloadRef = useRef(null);
+
+  const videoLoadedRef = useRef(false);
+
+  const introFinishedRef = useRef(false);
+
+  const introCompletedRef = useRef(false);
+
+  const [videoLoaded, setVideoLoaded] = useState(false);
+
+  // ============================================================
+  // ALL VIDEO PRELOADING
+  // ============================================================
+
+  useEffect(() => {
+    /*
+      If the intro has already been completed during this
+      session, don't delay the menu again.
+
+      The videos will still be requested by the browser when
+      their pages are opened.
+    */
+    if (
+      sessionStorage.getItem("p3-intro-shown") === "true"
+    ) {
+      return;
+    }
+
+    const preloaders = [];
+    let destroyed = false;
+
+    let readyCount = 0;
+
+    const totalVideos = Object.keys(PAGE_VIDEOS).length;
+
+    const updateProgress = () => {
+      if (destroyed) return;
+
+      /*
+        The first 90% belongs to the boot animation.
+
+        The final 10% represents the actual video preparation.
+      */
+
+      const preloadProgress =
+        totalVideos > 0
+          ? readyCount / totalVideos
+          : 1;
+
+      const visualProgress =
+        90 + preloadProgress * 10;
+
+      setIntroProgress(
+        Math.min(visualProgress, 100)
+      );
+
+      if (
+        readyCount >= totalVideos &&
+        !videoLoadedRef.current
+      ) {
+        videoLoadedRef.current = true;
+
+        setVideoLoaded(true);
+
+        if (
+          introFinishedRef.current &&
+          !introCompletedRef.current
+        ) {
+          completeIntro();
+        }
+      }
+    };
+
+    Object.entries(PAGE_VIDEOS).forEach(
+      ([page, url]) => {
+        const preloadVideo =
+          document.createElement("video");
+
+        preloadVideo.preload = "auto";
+        preloadVideo.muted = true;
+        preloadVideo.playsInline = true;
+
+        /*
+          This makes the browser request the actual
+          video immediately.
+        */
+        preloadVideo.src = url;
+
+        preloadVideo.setAttribute(
+          "playsinline",
+          ""
+        );
+
+        preloadVideo.setAttribute(
+          "webkit-playsinline",
+          ""
+        );
+
+        const markReady = () => {
+          if (destroyed) return;
+
+          /*
+            HAVE_FUTURE_DATA means enough data exists
+            to start playing without being completely
+            empty.
+          */
+          if (
+            preloadVideo.readyState >=
+            HTMLMediaElement.HAVE_FUTURE_DATA
+          ) {
+            if (!preloadVideo.dataset.ready) {
+              preloadVideo.dataset.ready = "true";
+
+              readyCount++;
+
+              updateProgress();
+            }
+          }
+        };
+
+        preloadVideo.addEventListener(
+          "loadeddata",
+          markReady
+        );
+
+        preloadVideo.addEventListener(
+          "canplay",
+          markReady
+        );
+
+        preloadVideo.addEventListener(
+          "canplaythrough",
+          markReady
+        );
+
+        preloadVideo.load();
+
+        preloaders.push({
+          page,
+          video: preloadVideo,
+          markReady,
+        });
+      }
+    );
+
+    /*
+      Some CDNs don't fire canplay/canplaythrough
+      consistently, so periodically check readyState.
+    */
+    const checkReady = setInterval(() => {
+      if (destroyed) {
+        clearInterval(checkReady);
+        return;
+      }
+
+      preloaders.forEach(
+        ({ video, markReady }) => {
+          markReady();
+        }
+      );
+
+      if (readyCount >= totalVideos) {
+        clearInterval(checkReady);
+      }
+    }, 250);
+
+    return () => {
+      destroyed = true;
+
+      clearInterval(checkReady);
+
+      preloaders.forEach(
+        ({ video, markReady }) => {
+          video.removeEventListener(
+            "loadeddata",
+            markReady
+          );
+
+          video.removeEventListener(
+            "canplay",
+            markReady
+          );
+
+          video.removeEventListener(
+            "canplaythrough",
+            markReady
+          );
+
+          video.pause();
+
+          video.removeAttribute("src");
+
+          video.load();
+        }
+      );
+    };
+  }, []);
+
   // ============================================================
   // INTRO ANIMATION
   // ============================================================
@@ -114,7 +342,14 @@ export default function P3Menu({ onNavigate }) {
     if (introStage !== "intro") return;
 
     let start = performance.now();
-    const duration = 1800;
+
+    /*
+      Boot animation itself still takes exactly 2500ms.
+
+      It then waits at 90% while the remaining videos
+      finish loading.
+    */
+    const duration = 2500;
 
     const animate = (now) => {
       const elapsed = now - start;
@@ -124,7 +359,13 @@ export default function P3Menu({ onNavigate }) {
         1
       );
 
-      setIntroProgress(progress * 100);
+      /*
+        Only animate from 0 -> 90%.
+        The video preload system controls 90 -> 100%.
+      */
+      setIntroProgress(
+        Math.min(progress * 90, 90)
+      );
 
       if (progress < 1) {
         animationRef.current =
@@ -139,7 +380,9 @@ export default function P3Menu({ onNavigate }) {
 
     return () => {
       if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+        cancelAnimationFrame(
+          animationRef.current
+        );
       }
     };
   }, []);
@@ -149,20 +392,57 @@ export default function P3Menu({ onNavigate }) {
   // ============================================================
 
   const finishIntro = () => {
+    introFinishedRef.current = true;
+
+    /*
+      Don't leave the boot screen until all page videos
+      are sufficiently ready.
+    */
+    if (!videoLoadedRef.current) {
+      setIntroProgress((current) =>
+        Math.max(current, 90)
+      );
+
+      return;
+    }
+
+    setIntroProgress(100);
+
+    completeIntro();
+  };
+
+  // ============================================================
+  // COMPLETE INTRO
+  // ============================================================
+
+  const completeIntro = () => {
+    if (
+      !introFinishedRef.current ||
+      introCompletedRef.current
+    ) {
+      return;
+    }
+
+    introCompletedRef.current = true;
+
     sessionStorage.setItem(
       "p3-intro-shown",
       "true"
     );
 
+    setIntroProgress(100);
+
     setIntroStage("flash");
 
-    finishTimeoutRef.current = setTimeout(() => {
-      setIntroStage("menu");
+    finishTimeoutRef.current =
+      setTimeout(() => {
+        setIntroStage("menu");
 
-      mountTimeoutRef.current = setTimeout(() => {
-        setMounted(true);
-      }, 150);
-    }, 130);
+        mountTimeoutRef.current =
+          setTimeout(() => {
+            setMounted(true);
+          }, 150);
+      }, 130);
   };
 
   // ============================================================
@@ -172,15 +452,21 @@ export default function P3Menu({ onNavigate }) {
   useEffect(() => {
     return () => {
       if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
+        cancelAnimationFrame(
+          animationRef.current
+        );
       }
 
       if (finishTimeoutRef.current) {
-        clearTimeout(finishTimeoutRef.current);
+        clearTimeout(
+          finishTimeoutRef.current
+        );
       }
 
       if (mountTimeoutRef.current) {
-        clearTimeout(mountTimeoutRef.current);
+        clearTimeout(
+          mountTimeoutRef.current
+        );
       }
     };
   }, []);
@@ -206,7 +492,18 @@ export default function P3Menu({ onNavigate }) {
           );
         }
 
-        finishIntro();
+        setIntroProgress(90);
+
+        /*
+          Skip the animation itself, but DON'T skip
+          video preparation.
+        */
+        introFinishedRef.current = true;
+
+        if (videoLoadedRef.current) {
+          setIntroProgress(100);
+          completeIntro();
+        }
       }
     };
 
@@ -256,7 +553,8 @@ export default function P3Menu({ onNavigate }) {
 
       audioLoadingRef.current = true;
 
-      const response = await fetch(navigateSound);
+      const response =
+        await fetch(navigateSound);
 
       const arrayBuffer =
         await response.arrayBuffer();
@@ -266,14 +564,16 @@ export default function P3Menu({ onNavigate }) {
           arrayBuffer
         );
 
-      audioBufferRef.current = decoded;
+      audioBufferRef.current =
+        decoded;
     } catch (error) {
       console.warn(
         "Navigation audio failed:",
         error
       );
     } finally {
-      audioLoadingRef.current = false;
+      audioLoadingRef.current =
+        false;
     }
   };
 
@@ -343,11 +643,11 @@ export default function P3Menu({ onNavigate }) {
   useEffect(() => {
     if (introStage !== "menu") return;
 
-    const video = videoRef.current;
+    const video =
+      videoRef.current;
 
     if (!video) return;
 
-    // Make sure the browser handles the video
     video.muted = true;
     video.loop = true;
     video.playsInline = true;
@@ -356,8 +656,6 @@ export default function P3Menu({ onNavigate }) {
       try {
         await video.play();
       } catch (error) {
-        // Browser may block autoplay temporarily.
-        // The video is muted, so normally this won't happen.
         console.warn(
           "Background video autoplay:",
           error
@@ -367,8 +665,6 @@ export default function P3Menu({ onNavigate }) {
 
     startVideo();
 
-    // If browser temporarily pauses it,
-    // simply try play again.
     const handlePause = () => {
       if (
         !document.hidden &&
@@ -707,7 +1003,6 @@ export default function P3Menu({ onNavigate }) {
           top: 28px;
           left: 35px;
           z-index: 20;
-
           opacity: 0;
 
           animation:
@@ -859,11 +1154,13 @@ export default function P3Menu({ onNavigate }) {
           line-height: .72;
           font-style: italic;
           letter-spacing: -3px;
+
           white-space: nowrap;
 
           transform: skewX(-10deg);
 
           color: white;
+
           opacity: 0;
 
           animation:
@@ -1125,8 +1422,9 @@ export default function P3Menu({ onNavigate }) {
 
           background: #05070d;
 
-          /* Prevent unnecessary repainting */
-          contain: layout paint;
+          contain:
+            layout
+            paint;
         }
 
         /* ========================================================
@@ -1150,19 +1448,13 @@ export default function P3Menu({ onNavigate }) {
 
           background: #05070d;
 
-          /* IMPORTANT:
-             Don't animate transform on the video.
-             The browser can use the video compositor directly.
-          */
-
           backface-visibility: hidden;
 
           display: block;
 
-          /* Keep video on compositor */
-          transform: translate3d(0,0,0);
+          transform:
+            translate3d(0,0,0);
 
-          /* Prevent interpolation/filter changes */
           image-rendering: auto;
         }
 
@@ -1254,7 +1546,6 @@ export default function P3Menu({ onNavigate }) {
 
           pointer-events: all;
 
-          /* Only menu gets composited */
           contain: layout;
         }
 
@@ -1780,15 +2071,7 @@ export default function P3Menu({ onNavigate }) {
       {introStage === "menu" && (
         <div className="p3-menu-screen">
 
-          {/* ======================================================
-              BACKGROUND VIDEO
-
-              IMPORTANT:
-              No watchdog.
-              No currentTime manipulation.
-              No video.load().
-              No forced seeking.
-          ====================================================== */}
+          {/* BACKGROUND VIDEO */}
 
           <video
             ref={videoRef}
@@ -1883,11 +2166,13 @@ export default function P3Menu({ onNavigate }) {
                           : "0ms",
                     }}
                     onClick={(e) => {
+
                       e.preventDefault();
 
                       onNavigate?.(
                         item.page
                       );
+
                     }}
                     onMouseEnter={() => {
                       activate(i);
@@ -2047,6 +2332,7 @@ export default function P3Menu({ onNavigate }) {
 
         </div>
       )}
+
     </>
   );
 }
