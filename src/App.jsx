@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Routes,
   Route,
@@ -7,6 +8,7 @@ import {
 
 import { AnimatePresence } from "framer-motion";
 
+import MobileWarning from "./MobileWarning";
 import Project from "./Project";
 import P3Menu from "./P3Menu";
 import VideoPage from "./VideoPage";
@@ -22,18 +24,12 @@ import "./App.css";
 // EXTERNAL VIDEO URLS
 // ============================================================
 
-const menuVideo =
-  "";
+const menuVideo = "";
 
 // Replace these with your actual VideoToURL links
-const main1 =
-  "YOUR_MAIN1_VIDEO_URL";
-
-const main2 =
-  "YOUR_MAIN2_VIDEO_URL";
-
-const main3 =
-  "YOUR_MAIN3_VIDEO_URL";
+const main1 = "YOUR_MAIN1_VIDEO_URL";
+const main2 = "YOUR_MAIN2_VIDEO_URL";
+const main3 = "YOUR_MAIN3_VIDEO_URL";
 
 // ============================================================
 // MENU SCREEN
@@ -73,6 +69,7 @@ function AnimatedRoutes() {
         location={location}
         key={location.pathname}
       >
+
         {/* ======================================================
             HOME
         ====================================================== */}
@@ -163,6 +160,7 @@ function AnimatedRoutes() {
             </PageTransition>
           }
         />
+
       </Routes>
     </AnimatePresence>
   );
@@ -173,12 +171,54 @@ function AnimatedRoutes() {
 // ============================================================
 
 export default function App() {
+  const [isMobile, setIsMobile] = React.useState(false);
+  const [deviceChecked, setDeviceChecked] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkDevice = () => {
+      const mobile = window.innerWidth <= 768;
+
+      setIsMobile(mobile);
+      setDeviceChecked(true);
+    };
+
+    checkDevice();
+
+    window.addEventListener("resize", checkDevice);
+
+    return () => {
+      window.removeEventListener("resize", checkDevice);
+    };
+  }, []);
+
+  // ============================================================
+  // WAIT FOR DEVICE CHECK
+  // ============================================================
+
+  if (!deviceChecked) {
+    return null;
+  }
+
+  // ============================================================
+  // MOBILE TERMINAL
+  //
+  // IMPORTANT:
+  // AnimatedRoutes and MusicPlayer do NOT mount on mobile.
+  // This prevents your videos and portfolio UI from loading.
+  // ============================================================
+
+  if (isMobile) {
+    return <MobileWarning />;
+  }
+
+  // ============================================================
+  // DESKTOP PORTFOLIO
+  // ============================================================
+
   return (
     <>
       {/* ========================================================
           ROUTES
-
-          These can change / unmount freely.
       ======================================================== */}
 
       <AnimatedRoutes />
@@ -186,23 +226,10 @@ export default function App() {
       {/* ========================================================
           GLOBAL MUSIC PLAYER
 
-          IMPORTANT:
+          This is the ONLY MusicPlayer instance.
 
-          THIS IS THE ONLY <MusicPlayer /> INSTANCE IN THE
-          ENTIRE APP.
-
-          It lives here, as a sibling of AnimatedRoutes,
-          OUTSIDE <Routes> and <AnimatePresence>.
-
-          Because of that, it NEVER unmounts when the route
-          changes and the audio element keeps playing.
-
-          Do NOT import or render <MusicPlayer /> anywhere else.
-
-          MusicPlayer itself decides via useLocation() whether
-          to show the visual controls on "/".
-
-          The audio element remains mounted across routes.
+          It stays outside Routes and AnimatePresence so it
+          remains mounted while navigating between pages.
       ======================================================== */}
 
       <MusicPlayer />
