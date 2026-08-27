@@ -1,634 +1,848 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 const MobileWarning = () => {
   const [booted, setBooted] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [videoReady, setVideoReady] = useState(false);
+
+  const videoRef = useRef(null);
+
+  const backgroundVideo =
+    "https://res.cloudinary.com/o6y4i5zp/video/upload/w_1080,q_auto:low,f_auto/v1787725102/mainn-web.mp4";
+
+  // Where the video/background link should take people if tapped.
+  const linkHref = "#";
+
+  /* =========================================================
+     VIDEO LOADING
+  ========================================================= */
 
   useEffect(() => {
-    const bootTimer = setTimeout(() => {
-      setBooted(true);
-    }, 900);
+    const video = videoRef.current;
 
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          return 100;
+    if (!video) return;
+
+    const updateProgress = () => {
+      if (!video.duration || !isFinite(video.duration)) {
+        return;
+      }
+
+      let bufferedEnd = 0;
+
+      for (let i = 0; i < video.buffered.length; i++) {
+        const start = video.buffered.start(i);
+        const end = video.buffered.end(i);
+
+        if (video.currentTime >= start && video.currentTime <= end) {
+          bufferedEnd = end;
+          break;
         }
+      }
 
-        return prev + Math.floor(Math.random() * 12) + 4;
-      });
-    }, 90);
+      if (bufferedEnd > 0) {
+        const percentage = (bufferedEnd / video.duration) * 100;
+        setProgress(Math.min(99, Math.max(0, Math.round(percentage))));
+      }
+    };
+
+    const handleMetadata = () => updateProgress();
+    const handleProgress = () => updateProgress();
+    const handleLoadedData = () => updateProgress();
+    const handleCanPlayThrough = () => {
+      setProgress(100);
+      setVideoReady(true);
+    };
+
+    video.addEventListener("loadedmetadata", handleMetadata);
+    video.addEventListener("progress", handleProgress);
+    video.addEventListener("loadeddata", handleLoadedData);
+    video.addEventListener("canplaythrough", handleCanPlayThrough);
+
+    video.load();
 
     return () => {
-      clearTimeout(bootTimer);
-      clearInterval(interval);
+      video.removeEventListener("loadedmetadata", handleMetadata);
+      video.removeEventListener("progress", handleProgress);
+      video.removeEventListener("loadeddata", handleLoadedData);
+      video.removeEventListener("canplaythrough", handleCanPlayThrough);
     };
   }, []);
+
+  /* =========================================================
+     BOOT AFTER VIDEO READY
+  ========================================================= */
+
+  useEffect(() => {
+    if (!videoReady) return;
+
+    const timer = setTimeout(() => {
+      setBooted(true);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [videoReady]);
 
   return (
     <>
       <style>{`
-        .mobile-warning {
+
+        .p3-mobile {
           position: fixed;
           inset: 0;
           width: 100vw;
           height: 100dvh;
-
-          background:
-            radial-gradient(
-              circle at center,
-              rgba(20, 35, 55, 0.45) 0%,
-              rgba(3, 7, 14, 0.95) 55%,
-              #02040a 100%
-            );
-
-          color: #dcecff;
-
-          display: flex;
-          align-items: center;
-          justify-content: center;
-
           overflow: hidden;
 
-          font-family:
-            "Arial Narrow",
-            "Roboto Condensed",
-            Arial,
-            sans-serif;
+          background: #020d24;
+          color: white;
+
+          font-family: "Arial Narrow", "Roboto Condensed", "Helvetica Neue", Arial, sans-serif;
 
           z-index: 999999;
+          isolation: isolate;
+
+          --content-left: 6.2%;
+          --content-right: 6.2%;
         }
 
-        /* =========================
-           NOISE
-        ========================= */
+        /* =====================================================
+           BACKGROUND LINK + VIDEO
+        ===================================================== */
 
-        .warning-noise {
+        .p3-bg-link {
           position: absolute;
-          inset: -50%;
-
-          opacity: 0.055;
-
-          pointer-events: none;
-
-          background-image:
-            repeating-radial-gradient(
-              circle at 0 0,
-              transparent 0,
-              rgba(255, 255, 255, 0.3) 1px,
-              transparent 2px
-            );
-
-          animation: noiseMove 0.25s steps(2) infinite;
+          inset: 0;
+          display: block;
+          z-index: -25;
+          cursor: pointer;
         }
 
-        @keyframes noiseMove {
-          0% {
-            transform: translate(0, 0);
-          }
-
-          25% {
-            transform: translate(-2%, 1%);
-          }
-
-          50% {
-            transform: translate(1%, -2%);
-          }
-
-          75% {
-            transform: translate(2%, 2%);
-          }
-
-          100% {
-            transform: translate(0, 0);
-          }
-        }
-
-        /* =========================
-           SCANLINE
-        ========================= */
-
-        .warning-scanline {
+        .p3-video {
           position: absolute;
+          inset: 0;
 
           width: 100%;
-          height: 2px;
+          height: 100%;
 
-          top: -10px;
-          left: 0;
+          object-fit: cover;
 
-          background: rgba(120, 190, 255, 0.35);
+          transform: scale(1.12) translate3d(-1%, 0, 0);
 
-          box-shadow:
-            0 0 12px rgba(80, 160, 255, 0.5),
-            0 0 30px rgba(80, 160, 255, 0.25);
+          filter: saturate(1.25) contrast(1.12) brightness(0.58);
 
-          animation: scan 4s linear infinite;
+          z-index: -20;
 
-          pointer-events: none;
+          animation: sceneFloat 14s ease-in-out infinite alternate;
         }
 
-        @keyframes scan {
-          0% {
-            top: -10px;
-          }
-
-          100% {
-            top: 110%;
-          }
+        @keyframes sceneFloat {
+          0% { transform: scale(1.12) translate3d(-1%, 0, 0); }
+          100% { transform: scale(1.17) translate3d(2%, -1%, 0); }
         }
 
-        /* =========================
-           CONTAINER
-        ========================= */
+        .p3-blue-wash {
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(120deg, rgba(0,20,65,0.82), rgba(0,87,180,0.30), rgba(0,8,32,0.82));
+          mix-blend-mode: multiply;
+          z-index: -19;
+        }
 
-        .warning-container {
-          position: relative;
+        .p3-cyan-light {
+          position: absolute;
+          width: 135%;
+          height: 65%;
+          left: -25%;
+          top: 16%;
+          background: linear-gradient(110deg, transparent 0%, rgba(0,184,255,0.10) 30%, rgba(0,210,255,0.32) 50%, rgba(0,125,255,0.10) 70%, transparent 100%);
+          transform: rotate(-12deg);
+          filter: blur(2px);
+          z-index: -18;
+        }
 
-          width: min(88vw, 430px);
+        .p3-dark {
+          position: absolute;
+          inset: 0;
+          background:
+            linear-gradient(90deg, rgba(0,7,28,0.48), transparent 45%, rgba(0,5,25,0.70)),
+            linear-gradient(0deg, rgba(0,7,24,0.90), transparent 48%, rgba(0,8,30,0.28));
+          z-index: -17;
+        }
 
+        .p3-shape-one {
+          position: absolute;
+          width: 165%;
+          height: 125px;
+          left: -32%;
+          top: 38%;
+          transform: rotate(-13deg);
+          background: linear-gradient(90deg, transparent, rgba(0,87,210,0.70) 30%, rgba(0,180,255,0.62) 55%, rgba(0,90,220,0.35) 76%, transparent);
+          opacity: 0.60;
+          mix-blend-mode: screen;
+          z-index: 1;
+          animation: slashMove 8s ease-in-out infinite alternate;
+        }
+
+        @keyframes slashMove {
+          from { transform: translateX(-3%) rotate(-13deg); }
+          to { transform: translateX(4%) rotate(-13deg); }
+        }
+
+        .p3-shape-two {
+          position: absolute;
+          width: 155%;
+          height: 42px;
+          left: -27%;
+          top: 48%;
+          transform: rotate(-13deg);
+          background: linear-gradient(90deg, transparent, rgba(45,196,255,0.70), transparent);
+          box-shadow: 0 0 22px rgba(0,180,255,0.55);
+          opacity: 0.75;
           z-index: 2;
         }
 
-        /* =========================
-           SYSTEM CHECK
-        ========================= */
-
-        .system-check {
-          animation: fadeIn 0.25s ease-out;
-        }
-
-        .system-title {
-          font-size: 18px;
-          letter-spacing: 3px;
-
-          margin-bottom: 30px;
-
-          color: #d8eaff;
-
-          text-shadow:
-            0 0 8px rgba(100, 180, 255, 0.7);
-        }
-
-        .system-line {
-          display: flex;
-          justify-content: space-between;
-
-          font-size: 12px;
-
-          letter-spacing: 1.5px;
-
-          padding: 9px 0;
-
-          border-bottom: 1px solid rgba(130, 170, 210, 0.15);
-
-          color: rgba(220, 235, 255, 0.65);
-        }
-
-        .system-line span:last-child {
-          color: #8ccaff;
-        }
-
-        .progress-wrapper {
+        .p3-shape-three {
+          position: absolute;
           width: 100%;
-          height: 4px;
-
-          margin-top: 28px;
-
-          background: rgba(120, 160, 200, 0.15);
-
-          overflow: hidden;
+          height: 1px;
+          left: 0;
+          top: 42%;
+          transform: rotate(-13deg);
+          background: rgba(165,239,255,0.75);
+          box-shadow: 0 0 12px rgba(60,200,255,0.75);
+          z-index: 3;
         }
 
-        .progress-bar {
-          height: 100%;
-
-          background: #9bd2ff;
-
-          box-shadow:
-            0 0 10px rgba(100, 190, 255, 0.9),
-            0 0 25px rgba(100, 190, 255, 0.5);
-
-          transition: width 0.08s linear;
+        .white-slash {
+          position: absolute;
+          width: 90%;
+          height: 3px;
+          right: -22%;
+          bottom: 34%;
+          transform: rotate(-17deg);
+          background: white;
+          opacity: 0.85;
+          box-shadow: 0 0 15px rgba(255,255,255,0.45);
+          z-index: 5;
         }
 
-        .loading-text {
-          margin-top: 12px;
-
-          font-size: 10px;
-
-          letter-spacing: 2px;
-
-          color: rgba(190, 220, 255, 0.5);
-
-          animation: blink 0.8s infinite;
+        .p3-grid {
+          position: absolute;
+          inset: 0;
+          background-image:
+            linear-gradient(rgba(95,190,255,0.15) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(95,190,255,0.15) 1px, transparent 1px);
+          background-size: 34px 34px;
+          opacity: 0.23;
+          mask-image: linear-gradient(to bottom, black 0%, black 48%, transparent 88%);
+          z-index: 4;
         }
 
-        /* =========================
-           WARNING PANEL
-        ========================= */
-
-        .warning-panel {
-          position: relative;
-
-          padding: 32px 26px;
-
-          background:
-            linear-gradient(
-              135deg,
-              rgba(12, 25, 40, 0.95),
-              rgba(3, 8, 16, 0.97)
-            );
-
-          border-left: 2px solid rgba(150, 205, 255, 0.7);
-          border-right: 2px solid rgba(150, 205, 255, 0.25);
-
-          box-shadow:
-            0 0 25px rgba(60, 130, 200, 0.15),
-            inset 0 0 35px rgba(50, 120, 190, 0.05);
-
-          animation:
-            panelIn 0.45s ease-out,
-            panelGlitch 5s infinite;
+        .p3-dots {
+          position: absolute;
+          width: 310px;
+          height: 310px;
+          right: -75px;
+          bottom: -75px;
+          background-image: radial-gradient(rgba(35,201,255,0.9) 1px, transparent 1.6px);
+          background-size: 8px 8px;
+          opacity: 0.48;
+          transform: rotate(-8deg);
+          mask-image: radial-gradient(ellipse at bottom right, black 0%, rgba(0,0,0,0.95) 30%, rgba(0,0,0,0.4) 58%, transparent 78%);
+          -webkit-mask-image: radial-gradient(ellipse at bottom right, black 0%, rgba(0,0,0,0.95) 30%, rgba(0,0,0,0.4) 58%, transparent 78%);
+          z-index: 5;
         }
 
-        @keyframes panelIn {
-          from {
-            opacity: 0;
-            transform: translateY(12px) scale(0.97);
-          }
-
-          to {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-          }
+        .p3-noise {
+          position: absolute;
+          inset: -50%;
+          pointer-events: none;
+          opacity: 0.035;
+          background-image: repeating-radial-gradient(circle at 0 0, transparent 0, rgba(255,255,255,0.5) 1px, transparent 2px);
+          animation: noise 0.22s steps(2) infinite;
+          z-index: 20;
         }
 
-        @keyframes panelGlitch {
-          0%,
-          94%,
-          100% {
-            transform: translateX(0);
-          }
-
-          95% {
-            transform: translateX(-2px);
-          }
-
-          96% {
-            transform: translateX(2px);
-          }
-
-          97% {
-            transform: translateX(0);
-          }
+        @keyframes noise {
+          0% { transform: translate(0,0); }
+          25% { transform: translate(-1%,1%); }
+          50% { transform: translate(1%,-1%); }
+          75% { transform: translate(1%,1%); }
+          100% { transform: translate(0,0); }
         }
 
-        /* =========================
-           HEADER
-        ========================= */
-
-        .warning-header {
-          font-size: 13px;
-
-          letter-spacing: 5px;
-
-          color: #9fd4ff;
-
-          margin-bottom: 28px;
-
-          text-shadow:
-            0 0 8px rgba(90, 180, 255, 0.7);
+        .p3-scan {
+          position: absolute;
+          width: 100%;
+          height: 2px;
+          left: 0;
+          top: -10px;
+          background: linear-gradient(90deg, transparent, rgba(100,220,255,0.65), transparent);
+          box-shadow: 0 0 18px rgba(0,180,255,0.7);
+          animation: scan 4.5s linear infinite;
+          z-index: 30;
         }
 
-        /* =========================
-           WARNING SYMBOL
-        ========================= */
+        @keyframes scan {
+          from { top: -10px; }
+          to { top: 110%; }
+        }
 
-        .warning-symbol {
-          width: 48px;
-          height: 48px;
+        /* =====================================================
+           BOOT SCREEN
+        ===================================================== */
 
+        .p3-boot {
+          position: absolute;
+          inset: 0;
           display: flex;
           align-items: center;
           justify-content: center;
-
-          margin-bottom: 22px;
-
-          border: 2px solid #ff5265;
-
-          color: #ff5265;
-
-          font-size: 30px;
-          font-weight: bold;
-
-          box-shadow:
-            0 0 12px rgba(255, 70, 90, 0.35);
-
-          animation: dangerPulse 1.4s infinite;
+          z-index: 100;
+          animation: bootIn 0.45s ease-out;
         }
 
-        @keyframes dangerPulse {
-          0%,
-          100% {
-            opacity: 1;
-          }
-
-          50% {
-            opacity: 0.55;
-          }
+        @keyframes bootIn {
+          from { opacity: 0; transform: scale(1.04); }
+          to { opacity: 1; transform: scale(1); }
         }
 
-        /* =========================
-           MAIN TEXT
-        ========================= */
-
-        .warning-main {
-          font-size: clamp(25px, 7vw, 38px);
-
-          line-height: 0.95;
-
-          font-weight: 800;
-
-          letter-spacing: 1px;
-
-          color: #f1f7ff;
-
-          text-shadow:
-            0 0 10px rgba(150, 210, 255, 0.35);
+        .p3-boot-content {
+          width: 82vw;
+          max-width: 480px;
+          transform: skewX(-7deg);
         }
 
-        .warning-divider {
+        .boot-small {
+          font-size: 8px;
+          letter-spacing: 5px;
+          color: rgba(160,225,255,0.7);
+          margin-bottom: 12px;
+        }
+
+        .boot-big {
+          font-size: clamp(40px, 12vw, 70px);
+          font-weight: 950;
+          line-height: 0.82;
+          letter-spacing: -3px;
+          color: white;
+          text-shadow: 4px 4px 0 #0754a5, 0 0 25px rgba(0,190,255,0.25);
+        }
+
+        .boot-big span { color: #55d8ff; }
+
+        .boot-lines { margin-top: 38px; }
+
+        .boot-line {
+          display: flex;
+          justify-content: space-between;
+          padding: 9px 0;
+          border-bottom: 1px solid rgba(120,210,255,0.16);
+          font-size: 8px;
+          letter-spacing: 2px;
+          color: rgba(220,240,255,0.55);
+        }
+
+        .boot-line span:last-child { color: #57d7ff; }
+
+        .boot-progress {
+          height: 5px;
+          margin-top: 27px;
+          background: rgba(80,150,220,0.2);
+          transform: skewX(-8deg);
+          overflow: hidden;
+        }
+
+        .boot-progress-inner {
+          height: 100%;
+          background: linear-gradient(90deg, #0871c9, #59d9ff);
+          box-shadow: 0 0 15px rgba(60,200,255,0.8);
+          transition: width 0.15s linear;
+        }
+
+        .boot-percent {
+          margin-top: 11px;
+          font-size: 8px;
+          letter-spacing: 3px;
+          color: rgba(180,225,250,0.55);
+          animation: blink 0.8s infinite;
+        }
+
+        /* =====================================================
+           WARNING SCREEN — now a flex column so content spreads
+           across the full height (top / middle / bottom) instead
+           of clustering near the top.
+        ===================================================== */
+
+        .p3-warning {
+          position: absolute;
+          inset: 0;
+          z-index: 40;
+
+          display: flex;
+          flex-direction: column;
+
+          padding: clamp(28px, 7vh, 64px) var(--content-right) clamp(20px, 5vh, 40px) var(--content-left);
+
+          animation: warningEnter 0.65s cubic-bezier(.16,.8,.25,1);
+        }
+
+        @keyframes warningEnter {
+          from { opacity: 0; transform: translateX(60px) scale(1.03); }
+          to { opacity: 1; transform: translateX(0) scale(1); }
+        }
+
+        /* ---- top: brand block ---- */
+
+        .p3-brand {
+          flex: 0 0 auto;
+          z-index: 50;
+          transform: skewX(-8deg);
+          transform-origin: left top;
+        }
+
+        .brand-mini {
+          font-size: clamp(6px, 0.85vw, 10px);
+          letter-spacing: clamp(3px, 0.55vw, 6px);
+          color: rgba(210,240,255,0.72);
+          margin-bottom: clamp(9px, 1.1vw, 16px);
+        }
+
+        .brand-name {
+          font-size: clamp(42px, 10vw, 104px);
+          font-weight: 950;
+          line-height: 0.86;
+          letter-spacing: clamp(-3px, -0.42vw, -5px);
+          color: white;
+          white-space: nowrap;
+          text-shadow: 4px 4px 0 #034c9b;
+        }
+
+        .brand-name .cyan {
+          color: #55d8ff;
+          position: relative;
+          left: clamp(4px, 0.8vw, 10px);
+          text-shadow: 4px 4px 0 #0758a8;
+        }
+
+        .brand-year {
+          margin-top: clamp(14px, 1.8vw, 22px);
+          font-size: clamp(6px, 0.75vw, 9px);
+          letter-spacing: clamp(3px, 0.5vw, 6px);
+          color: rgba(110,210,255,0.60);
+        }
+
+        /* ---- middle: warning content, vertically centered in
+               the remaining space between brand and footer ---- */
+
+        .warning-area {
+          flex: 1 1 auto;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          min-height: 0;
+          z-index: 60;
+          overflow: visible;
+        }
+
+        .warning-label {
+          display: flex;
+          align-items: center;
+          gap: clamp(8px, 1.1vw, 14px);
+          font-size: clamp(7px, 0.85vw, 10px);
+          letter-spacing: clamp(2.5px, 0.45vw, 5px);
+          color: #59d8ff;
+          white-space: nowrap;
+          transform: skewX(-8deg);
+        }
+
+        .warning-label::before {
+          content: "";
+          width: clamp(25px, 4vw, 42px);
+          height: 2px;
+          flex-shrink: 0;
+          background: #5bd8ff;
+          box-shadow: 0 0 12px rgba(50,200,255,0.8);
+        }
+
+        .warning-title {
+          margin-top: clamp(14px, 2vw, 25px);
+          font-size: clamp(43px, 11vw, 105px);
+          font-weight: 950;
+          line-height: 0.86;
+          letter-spacing: clamp(-2.8px, -0.65vw, -5px);
+          color: white;
+          font-style: italic;
+          transform: skewX(-4deg);
+          transform-origin: left center;
+          text-shadow: 5px 5px 0 rgba(0,57,135,0.85), 0 0 25px rgba(30,190,255,0.18);
           width: 100%;
-          height: 1px;
-
-          margin: 25px 0;
-
-          background:
-            linear-gradient(
-              90deg,
-              rgba(130, 200, 255, 0.8),
-              transparent
-            );
+          white-space: nowrap;
         }
 
-        /* =========================
-           MESSAGE
-        ========================= */
-
-        .warning-message {
-          font-size: 11px;
-
-          line-height: 1.7;
-
-          letter-spacing: 1.2px;
-
-          color: rgba(220, 235, 255, 0.65);
-
-          margin-bottom: 25px;
+        .warning-title .cyan {
+          color: #56d8ff;
+          text-shadow: 5px 5px 0 #0757a7, 0 0 20px rgba(40,205,255,0.4);
         }
 
-        /* =========================
-           STATUS
-        ========================= */
+        .warning-title .outline {
+          color: transparent;
+          -webkit-text-stroke: clamp(1.5px, 0.35vw, 3px) white;
+          text-shadow: none;
+          opacity: 0.9;
+        }
+
+        .warning-copy {
+          margin-top: clamp(22px, 3vw, 34px);
+          width: min(82%, 770px);
+          padding-left: clamp(10px, 1.4vw, 16px);
+          border-left: clamp(2px, 0.3vw, 3px) solid #55d5ff;
+          font-size: clamp(8px, 0.9vw, 11px);
+          line-height: 1.8;
+          letter-spacing: clamp(1px, 0.15vw, 1.7px);
+          color: rgba(238,248,255,0.72);
+        }
+
+        .warning-copy strong { color: #62d9ff; }
+
+        .p3-menu {
+          margin-top: clamp(21px, 2.6vw, 30px);
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          gap: clamp(17px, 3.2vw, 42px);
+          transform: skewX(-4deg);
+          white-space: nowrap;
+        }
+
+        .menu-option {
+          position: relative;
+          font-size: clamp(6px, 0.72vw, 9px);
+          letter-spacing: clamp(1.4px, 0.25vw, 2.5px);
+          color: rgba(210,235,250,0.5);
+        }
+
+        .menu-option.active { color: white; }
+
+        .menu-option.active::before {
+          content: "▶";
+          color: #59d8ff;
+          margin-right: 5px;
+        }
 
         .warning-status {
           display: flex;
-          justify-content: space-between;
-
-          font-size: 10px;
-
-          letter-spacing: 2px;
-
-          padding: 8px 0;
-
-          border-top: 1px solid rgba(140, 180, 220, 0.1);
-
-          color: rgba(200, 220, 245, 0.45);
+          align-items: flex-start;
+          gap: clamp(22px, 4vw, 55px);
+          margin-top: clamp(20px, 2.8vw, 32px);
         }
 
-        .warning-status span:last-child {
-          color: #a6d8ff;
+        .status-item {
+          display: flex;
+          flex-direction: column;
+          gap: clamp(3px, 0.45vw, 6px);
+          min-width: clamp(58px, 8vw, 95px);
         }
 
-        .warning-status .danger {
-          color: #ff5265;
+        .status-label {
+          font-size: clamp(5px, 0.6vw, 8px);
+          letter-spacing: clamp(1.5px, 0.25vw, 2.5px);
+          color: rgba(190,225,245,0.4);
         }
 
-        /* =========================
-           FOOTER
-        ========================= */
-
-        .warning-footer {
-          margin-top: 25px;
-
-          font-size: 9px;
-
-          line-height: 1.8;
-
-          letter-spacing: 1.7px;
-
-          color: rgba(190, 215, 240, 0.4);
+        .status-value {
+          font-size: clamp(7px, 0.8vw, 11px);
+          font-weight: 900;
+          letter-spacing: clamp(1px, 0.18vw, 2px);
+          color: white;
+          white-space: nowrap;
         }
 
-        /* =========================
-           CORNERS
-        ========================= */
+        .status-value.red {
+          color: #ff536b;
+          text-shadow: 0 0 10px rgba(255,50,80,0.4);
+        }
 
-        .warning-corner {
+        /* ---- decorative side label, still absolute over
+               the whole warning frame ---- */
+
+        .side-label {
           position: absolute;
-
-          width: 14px;
-          height: 14px;
-
-          border-color: rgba(160, 215, 255, 0.8);
-          border-style: solid;
+          right: -32px;
+          top: 46%;
+          transform: rotate(90deg) skewX(-8deg);
+          font-size: clamp(5px, 0.65vw, 8px);
+          letter-spacing: clamp(2.5px, 0.4vw, 5px);
+          color: rgba(120,210,255,0.45);
+          white-space: nowrap;
         }
 
-        .corner-tl {
-          top: -1px;
-          left: -1px;
+        /* ---- bottom: footer block, pinned to bottom by flex ---- */
 
-          border-width: 2px 0 0 2px;
+        .bottom-info {
+          flex: 0 0 auto;
+          font-size: clamp(5px, 0.6vw, 8px);
+          line-height: 1.9;
+          letter-spacing: clamp(1.5px, 0.25vw, 2.5px);
+          color: rgba(160,215,240,0.35);
+          transform: skewX(-8deg);
         }
 
-        .corner-tr {
-          top: -1px;
-          right: -1px;
+        .bottom-info span { color: rgba(80,205,255,0.7); }
 
-          border-width: 2px 2px 0 0;
+        .p3-flash {
+          position: absolute;
+          inset: 0;
+          background: white;
+          z-index: 200;
+          pointer-events: none;
+          opacity: 0;
+          animation: flash 0.7s ease-out;
         }
 
-        .corner-bl {
-          bottom: -1px;
-          left: -1px;
-
-          border-width: 0 0 2px 2px;
-        }
-
-        .corner-br {
-          bottom: -1px;
-          right: -1px;
-
-          border-width: 0 2px 2px 0;
-        }
-
-        /* =========================
-           ANIMATIONS
-        ========================= */
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-
-          to {
-            opacity: 1;
-          }
+        @keyframes flash {
+          0% { opacity: 0.2; }
+          100% { opacity: 0; }
         }
 
         @keyframes blink {
-          0%,
-          100% {
-            opacity: 0.35;
-          }
+          0%, 100% { opacity: 0.35; }
+          50% { opacity: 1; }
+        }
 
-          50% {
-            opacity: 1;
+        /* =====================================================
+           MOBILE SPACING SYSTEM
+        ===================================================== */
+
+        @media (max-width: 600px) {
+          .p3-mobile { --content-left: 6%; --content-right: 6%; }
+          .brand-mini { font-size: 7px; letter-spacing: 4px; margin-bottom: 9px; }
+          .brand-name { font-size: clamp(39px, 11vw, 52px); line-height: 0.84; letter-spacing: -3px; }
+          .brand-name .cyan { left: 4px; }
+          .brand-year { margin-top: 13px; font-size: 6px; letter-spacing: 3px; }
+          .warning-label { font-size: 7px; letter-spacing: 3px; gap: 8px; }
+          .warning-label::before { width: 25px; height: 2px; }
+          .warning-title { margin-top: 13px; font-size: clamp(42px, 12vw, 54px); line-height: 0.82; letter-spacing: -2.8px; }
+          .warning-copy { margin-top: 20px; width: 90%; padding-left: 9px; font-size: 8px; line-height: 1.7; letter-spacing: 1.05px; }
+          .p3-menu { margin-top: 19px; gap: 15px; padding-left: 0; }
+          .menu-option { font-size: 6.5px; letter-spacing: 1.35px; }
+          .menu-option.active::before { margin-right: 4px; }
+          .warning-status { margin-top: 18px; gap: 20px; }
+          .status-item { min-width: 55px; gap: 4px; }
+          .status-label { font-size: 5.5px; letter-spacing: 1.5px; }
+          .status-value { font-size: 7px; letter-spacing: 1px; }
+          .p3-dots { width: 260px; height: 260px; right: -65px; bottom: -55px; }
+          .side-label { display: none; }
+        }
+
+        @media (max-width: 380px) {
+          .p3-mobile { --content-left: 6%; --content-right: 6%; }
+          .p3-video { transform: scale(1.20) translateX(-3%); }
+          .brand-mini { font-size: 6.5px; letter-spacing: 3.5px; margin-bottom: 8px; }
+          .brand-name { font-size: 41px; line-height: 0.84; letter-spacing: -2.8px; }
+          .brand-year { margin-top: 12px; }
+          .warning-label { font-size: 6.5px; letter-spacing: 2.8px; }
+          .warning-label::before { width: 23px; }
+          .warning-title { margin-top: 12px; font-size: 44px; line-height: 0.81; letter-spacing: -2.6px; }
+          .warning-copy { margin-top: 19px; width: 91%; font-size: 7.7px; line-height: 1.68; letter-spacing: 1px; }
+          .p3-menu { margin-top: 17px; gap: 13px; }
+          .menu-option { font-size: 6px; letter-spacing: 1.3px; }
+          .warning-status { margin-top: 16px; gap: 17px; }
+          .status-item { min-width: 52px; }
+          .status-label { font-size: 5px; }
+          .status-value { font-size: 6.7px; }
+        }
+
+        @media (max-width: 350px) {
+          .brand-name { font-size: 38px; line-height: 0.83; }
+          .brand-year { margin-top: 11px; }
+          .warning-label { font-size: 6px; letter-spacing: 2.5px; }
+          .warning-label::before { width: 21px; }
+          .warning-title { margin-top: 11px; font-size: 41px; line-height: 0.79; letter-spacing: -2.4px; }
+          .warning-copy { margin-top: 17px; width: 94%; font-size: 7.2px; line-height: 1.62; letter-spacing: 0.9px; }
+          .p3-menu { margin-top: 15px; gap: 10px; }
+          .menu-option { font-size: 5.8px; letter-spacing: 1.2px; }
+          .warning-status { margin-top: 14px; gap: 12px; }
+          .status-item { min-width: 48px; }
+          .status-label { font-size: 4.8px; }
+          .status-value { font-size: 6.2px; letter-spacing: 0.8px; }
+        }
+
+        @media (max-height: 650px) and (max-width: 600px) {
+          .brand-name { font-size: 39px; line-height: 0.82; }
+          .brand-year { margin-top: 10px; }
+          .warning-title { font-size: 42px; line-height: 0.79; }
+          .warning-copy { margin-top: 16px; line-height: 1.58; }
+          .p3-menu { margin-top: 14px; }
+          .warning-status { margin-top: 13px; }
+        }
+
+        @media (max-height: 580px) and (max-width: 600px) {
+          .brand-mini { margin-bottom: 6px; }
+          .brand-name { font-size: 35px; }
+          .brand-year { margin-top: 8px; }
+          .warning-title { margin-top: 9px; font-size: 38px; line-height: 0.76; }
+          .warning-copy { margin-top: 14px; line-height: 1.5; }
+          .p3-menu { margin-top: 12px; gap: 9px; }
+          .warning-status { margin-top: 11px; gap: 10px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .p3-video, .p3-shape-one, .p3-noise, .p3-scan, .boot-percent {
+            animation: none;
           }
         }
 
-        /* =========================
-           SMALL PHONES
-        ========================= */
-
-        @media (max-height: 650px) {
-          .warning-panel {
-            padding: 22px 20px;
-          }
-
-          .warning-header {
-            margin-bottom: 18px;
-          }
-
-          .warning-symbol {
-            width: 38px;
-            height: 38px;
-
-            font-size: 23px;
-
-            margin-bottom: 15px;
-          }
-
-          .warning-divider {
-            margin: 18px 0;
-          }
-
-          .warning-message {
-            margin-bottom: 15px;
-          }
-
-          .warning-footer {
-            margin-top: 15px;
-          }
-        }
       `}</style>
 
-      <div className="mobile-warning">
-        <div className="warning-noise" />
-        <div className="warning-scanline" />
+      <div className="p3-mobile">
 
-        <div className="warning-container">
+        {/* Background video wrapped in a link */}
+        <a
+          className="p3-bg-link"
+          href={linkHref}
+          aria-label="Enter portfolio"
+        >
+          <video
+            ref={videoRef}
+            className="p3-video"
+            autoPlay
+            muted
+            loop
+            playsInline
+            preload="auto"
+          >
+            <source src={backgroundVideo} type="video/mp4" />
+          </video>
+        </a>
 
-          {!booted ? (
-            <div className="system-check">
+        <div className="p3-blue-wash" />
+        <div className="p3-cyan-light" />
+        <div className="p3-dark" />
 
-              <div className="system-title">
-                SYSTEM INITIALIZATION
+        <div className="p3-shape-one" />
+        <div className="p3-shape-two" />
+        <div className="p3-shape-three" />
+        <div className="white-slash" />
+
+        <div className="p3-grid" />
+        <div className="p3-dots" />
+        <div className="p3-noise" />
+        <div className="p3-scan" />
+
+        {!booted ? (
+          <div className="p3-boot">
+            <div className="p3-boot-content">
+              <div className="boot-small">PERSONA PORTFOLIO // INITIALIZING</div>
+
+              <div className="boot-big">
+                ENTER
+                <br />
+                <span>PORTFOLIO</span>
               </div>
 
-              <div className="system-line">
-                <span>DEVICE DETECTION</span>
-                <span>OK</span>
+              <div className="boot-lines">
+                <div className="boot-line">
+                  <span>VISUAL SYSTEM</span>
+                  <span>READY</span>
+                </div>
+                <div className="boot-line">
+                  <span>DEVICE</span>
+                  <span>MOBILE</span>
+                </div>
+                <div className="boot-line">
+                  <span>DISPLAY</span>
+                  <span>ANALYZING</span>
+                </div>
+                <div className="boot-line">
+                  <span>EXPERIENCE</span>
+                  <span>{videoReady ? "READY" : "LOADING"}</span>
+                </div>
               </div>
 
-              <div className="system-line">
-                <span>DISPLAY ANALYSIS</span>
-                <span>OK</span>
+              <div className="boot-progress">
+                <div className="boot-progress-inner" style={{ width: `${progress}%` }} />
               </div>
 
-              <div className="system-line">
-                <span>COMPATIBILITY CHECK</span>
-                <span>...</span>
+              <div className="boot-percent">
+                {videoReady ? "SYSTEM READY // 100%" : `LOADING VIDEO // ${progress}%`}
               </div>
-
-              <div className="progress-wrapper">
-                <div
-                  className="progress-bar"
-                  style={{
-                    width: `${Math.min(progress, 100)}%`,
-                  }}
-                />
-              </div>
-
-              <div className="loading-text">
-                ANALYZING TERMINAL...
-              </div>
-
             </div>
-          ) : (
-            <div className="warning-panel">
+          </div>
+        ) : (
+          <div className="p3-warning">
+            <div className="p3-flash" />
 
-              <div className="warning-header">
-                SYSTEM ALERT
-              </div>
-
-              <div className="warning-symbol">
-                !
-              </div>
-
-              <div className="warning-main">
-                DESKTOP TERMINAL
+            {/* TOP */}
+            <div className="p3-brand">
+              <div className="brand-mini">PERSONA PORTFOLIO</div>
+              <div className="brand-name">
+                SAKSHAM
                 <br />
-                REQUIRED
+                <span className="cyan">JUNEJA</span>
+              </div>
+              <div className="brand-year">PORTFOLIO // 2026</div>
+            </div>
+
+            {/* MIDDLE — vertically centered in remaining space */}
+            <div className="warning-area">
+              <div className="warning-label">EXPERIENCE NOTICE</div>
+
+              <div className="warning-title">
+                THIS
+                <br />
+                EXPERIENCE
+                <br />
+                IS <span className="cyan">DESKTOP</span>
+                <br />
+                <span className="outline">ONLY</span>
               </div>
 
-              <div className="warning-divider" />
-
-              <div className="warning-message">
-                THIS EXPERIENCE WAS DESIGNED
+              <div className="warning-copy">
+                THIS PORTFOLIO WAS DESIGNED AS A
                 <br />
-                SPECIFICALLY FOR A DESKTOP DISPLAY.
+                <strong>FULL-SCREEN EXPERIENCE.</strong>
+                <br />
+                <br />
+                YOUR CURRENT DEVICE CAN'T DISPLAY
+                <br />
+                THE COMPLETE INTERFACE.
+              </div>
+
+              <div className="p3-menu">
+                <div className="menu-option active">DESKTOP VERSION</div>
+                <div className="menu-option">PORTFOLIO</div>
+                <div className="menu-option">2026</div>
               </div>
 
               <div className="warning-status">
-                <span>DEVICE</span>
-                <span>MOBILE</span>
+                <div className="status-item">
+                  <div className="status-label">DEVICE</div>
+                  <div className="status-value">MOBILE</div>
+                </div>
+                <div className="status-item">
+                  <div className="status-label">STATUS</div>
+                  <div className="status-value red">RESTRICTED</div>
+                </div>
+                <div className="status-item">
+                  <div className="status-label">REQUIRED</div>
+                  <div className="status-value">DESKTOP</div>
+                </div>
               </div>
-
-              <div className="warning-status">
-                <span>STATUS</span>
-                <span className="danger">
-                  ACCESS DENIED
-                </span>
-              </div>
-
-              <div className="warning-footer">
-                PLEASE ACCESS THIS PORTFOLIO
-                <br />
-                FROM A PC OR LAPTOP.
-              </div>
-
-              <div className="warning-corner corner-tl" />
-              <div className="warning-corner corner-tr" />
-              <div className="warning-corner corner-bl" />
-              <div className="warning-corner corner-br" />
-
             </div>
-          )}
 
-        </div>
+            <div className="side-label">PERSONA // PORTFOLIO // EXPERIENCE // 2026</div>
+
+            {/* BOTTOM — pinned to the bottom of the frame */}
+            <div className="bottom-info">
+              PORTFOLIO SYSTEM
+              <br />
+              <span>WAITING FOR DESKTOP DISPLAY</span>
+              <br />
+              SJ // 2026
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
